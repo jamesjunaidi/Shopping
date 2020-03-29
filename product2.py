@@ -19,7 +19,7 @@ app = Flask(__name__)
 TPText = open("TPnumbers.txt", "w+")
 HSText = open("HSnumbers.txt", "w+")
 FMText = open("FMnumbers.txt", "w+")
-
+ 
 @app.route("/sms", methods=['GET', 'POST'])
 def incoming_sms():
     global numOfTimesRan
@@ -37,34 +37,43 @@ def incoming_sms():
         
         if number not in listOfTPnumbers:
             listOfTPnumbers.append(number)
-            TPText.write("%s\n" % number)
+            TPText.write("%s" % number)
             resp.message("We will text you when toilet paper is available")
+            resp.message("Please enter your ZIP Code so that local stores can update you")
+            incoming_zip()
         else:
             resp.message("You are already subscribed to toilet paper notifications")
     elif body == '2':
         if number not in listOfHSnumbers:
             listOfHSnumbers.append(number)
-            HSText.write("%s\n" % number)
+            HSText.write("%s" % number)
             resp.message("We will text you when hand sanitizer is available")
+            resp.message("Please enter your ZIP Code so that local stores can update you")
+            zipCode = request.values.get('Body', None)
+            TPText.write(" %s\n" % zipCode)
+            print(" %s\n" % zipCode)
         else:
             resp.message("You are already subscribed to hand sanitizer notifications")
     elif body == '3':
         if number not in listOfFaceMaskNumbers:
             listOfFaceMaskNumbers.append(number)
-            FMText.write("%s\n" % number)
+            FMText.write("%s" % number)
             resp.message("We will text you when face masks are available")
+            resp.message("Please enter your ZIP Code so that local stores can update you")
+            zipCode = request.values.get('Body', None)
+            TPText.write(" %s\n" % zipCode)
+            print(" %s\n" % zipCode)
         else:
             resp.message("You are already subscribed to face mask notifications")
     else:
         resp.message("You are enrolled in Solomon James Rushil inventory service. To buy toilet paper, text 1. To buy hand saniter, text 2. To buy face masks, text 3")
-        if number not in listOfNumbers:
-            listOfNumbers.append(number)
-    
-    print("printing the TP array")
-    for item in listOfTPnumbers:
-        print(item)
     
     return str(resp)
+
+def incoming_zip():
+    zipCode = request.values.get('Body', None)
+    TPText.write(" %s\n," % zipCode)
+    
 
 if __name__ == "__main__":
     app.run(debug=True)
@@ -92,7 +101,7 @@ def retrieve_store():
 # Your Account SID from twilio.com/console
 account_sid = "ACf21b270aa57d4c7ce089f2ca9d472e90"
 # Your Auth Token from twilio.com/console
-auth_token = "XXX"
+auth_token = "XXXX"
 
 client = Client(account_sid, auth_token)
 
@@ -103,22 +112,16 @@ def sendMessage():
     #this line actually sends the message
     #message = client.messages.create(to="+19163657393", from_="+16178198883", body=string)
     if itemString == "Toilet Paper": 
-        print("got to send Toilet Paper")
         with open("TPnumbers.txt", "r+") as filehandle:
             for number in filehandle:
-                print("got to for each number in TP")
                 message = client.messages.create(to=number, from_="+16178198883", body=string)
     if itemString == "Hand Sanitizer":
-        print("go to send Hand Sanitizer")
         with open("HSnumbers.txt", "r+") as filehandle:
             for number in filehandle:
-                print("got to for each number in HS")
                 message = client.messages.create(to=number, from_="+16178198883", body=string)
     if itemString == "Face Mask":
-        print("go to send Face Mask")
         with open("FMnumbers.txt", "r+") as filehandle:
             for number in filehandle:
-                print("got to for each number in FM")
                 message = client.messages.create(to=number, from_="+16178198883", body=string)
 
 #start GUI
