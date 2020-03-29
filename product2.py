@@ -5,6 +5,7 @@ from flask import Flask, request, redirect
 from twilio.twiml.messaging_response import MessagingResponse
 from PIL import Image, ImageTk
 
+# The phone number is +12568575941
 #import server.py
 
 listOfTPnumbers = []
@@ -21,7 +22,7 @@ HSText = open("HSnumbers.txt", "w+")
 FMText = open("FMnumbers.txt", "w+")
 
 previousBodyNumber = '0'
- 
+
 @app.route("/sms", methods=['GET', 'POST'])
 def incoming_sms():
     global previousBodyNumber
@@ -36,73 +37,57 @@ def incoming_sms():
     # Start our TwiML response
     resp = MessagingResponse()
 
+    if len(body) == 5:
+        incoming_zip(body, previousBodyNumber)
+        resp.message("Thank you for your zip code!")
+        return str(resp)
     
-    if incoming_zip(number, previousBodyNumber):
-        print("got inside if statement")
-        return "0"
-    if body == '1':
-        
+    if body == '1': 
         if number not in listOfTPnumbers:
             listOfTPnumbers.append(number)
-            TPText.write("%s" % number)
+            TPText.write("%s\n" % number)
             resp.message("We will text you when toilet paper is available")
             resp.message("Please enter your ZIP Code so that local stores can update you")
             previousBodyNumber = 1
-            incoming_zip(number, previousBodyNumber)
-            resp.message("Thank you for using Solomon James Rushil inventory service.")
         else:
             resp.message("You are already subscribed to toilet paper notifications")
     elif body == '2':
         if number not in listOfHSnumbers:
             listOfHSnumbers.append(number)
-            HSText.write("%s" % number)
+            HSText.write("%s\n" % number)
             resp.message("We will text you when hand sanitizer is available")
             resp.message("Please enter your ZIP Code so that local stores can update you")
             previousBodyNumber = 2
-            incoming_zip(number, previousBodyNumber)
-            resp.message("Thank you for using Solomon James Rushil inventory service.")
-            
         else:
             resp.message("You are already subscribed to hand sanitizer notifications")
     elif body == '3':
         if number not in listOfFaceMaskNumbers:
             listOfFaceMaskNumbers.append(number)
-            FMText.write("%s" % number)
+            FMText.write("%s\n" % number)
             resp.message("We will text you when face masks are available")
             resp.message("Please enter your ZIP Code so that local stores can update you")
             previousBodyNumber = 3
-            incoming_zip(number, previousBodyNumber)
-            resp.message("Thank you for using Solomon James Rushil inventory service.")
-            
         else:
             resp.message("You are already subscribed to face mask notifications")
     else:
-        resp.message("You are enrolled in Solomon James Rushil inventory service. To buy toilet paper, text 1. To buy hand saniter, text 2. To buy face masks, text 3")
+        resp.message("You are enrolled in Shopper Alert inventory service. To buy toilet paper, text 1. To buy hand saniter, text 2. To buy face masks, text 3")
     
     return str(resp)
 
 def incoming_zip(number, body):
     zipCode = request.values.get('Body', None)
     print("zipCode in incoming-zip" + zipCode)
-    for user in listOfTPnumbers:
-        if user == number and body == '1':
-            print("went inside body ==1")
-            TPText.write("%s\n" % zipCode)
-            return True
-    
-
-    for user in listOfHSnumbers:
-        if user == number and body == '2':
-            print("went inside body ==2")
-            HSText.write("%s\n" % zipCode)
-            return True
-            
-
-    for user in listOfFaceMaskNumbers:
-        if user == number and body == '3':
-            print("went inside body ==3")
-            FMText.write("%s\n " % zipCode)
-            return True
+    print("body: " + str(body))
+    if body == 1:
+        TPText.write("%s\n" % zipCode)
+        return True
+    if body == 2:
+        print("Its in body=2")
+        HSText.write("%s\n" % zipCode)
+        return True
+    if body == 3:
+        FMText.write("%s\n" % zipCode)
+        return True
     return False
     
 
@@ -133,7 +118,7 @@ def retrieve_zip():
 #start twilio
 
 # Your Account SID from twilio.com/console
-account_sid = "ACf21b270aa57d4c7ce089f2ca9d472e90"
+account_sid = "ACaef97a4585c34bfb073716c0bfbc52db"
 # Your Auth Token from twilio.com/console
 auth_token = "xxxx"
 
@@ -147,7 +132,7 @@ def sendMessage():
     #this var will hold the complteted string
     string = "The item " + itemString + " is now in stock in " + retrieve_store() + " at the ZIP Code: " + str(retrieve_zip()) + "." + " There are " + retrieve_quantity() + " available."
     #this line actually sends the message
-    #message = client.messages.create(to="+19163657393", from_="+16178198883", body=string)
+
 
     if itemString == "Toilet Paper": 
         with TPTell as filehandle:
@@ -168,7 +153,7 @@ def sendMessage():
                 #print(int(zipCodeOnly) == retrieve_zip())
                 if (result == 0):
                     print("about to send message to " + phoneNumberOnly[0:12])
-                    message = client.messages.create(to=phoneNumberOnly[0:12], from_="+16178198883", body=string)
+                    message = client.messages.create(to=phoneNumberOnly[0:12], from_="+12568575941", body=string)
         TPTell.close()
     if itemString == "Hand Sanitizer":
         with HSTell as filehandle:
@@ -180,7 +165,7 @@ def sendMessage():
                 lineIndex += 2
                 result = int(zipCodeOnly) - int(retrieve_zip())
                 if (result == 0):
-                    message = client.messages.create(to=phoneNumberOnly[0:12], from_="+16178198883", body=string)
+                    message = client.messages.create(to=phoneNumberOnly[0:12], from_="+12568575941", body=string)
         HSTell.close()
     if itemString == "Face Mask":
         with FMTell as filehandle:
@@ -192,7 +177,7 @@ def sendMessage():
                 lineIndex += 2
                 result = int(zipCodeOnly) - int(retrieve_zip())
                 if (result == 0):
-                    message = client.messages.create(to=phoneNumberOnly[0:12], from_="+16178198883", body=string)
+                    message = client.messages.create(to=phoneNumberOnly[0:12], from_="+12568575941", body=string)
         FMTell.close()
 
 #start GUI
@@ -200,13 +185,13 @@ def sendMessage():
 
 
 m=tkinter.Tk() #m is the name of the main window object
-m.geometry('1100x875')
+m.geometry('1100x910')
 #image1 = tkinter.Image(file = "toiletpaper.jpg")
-photo = Image.open("toiletpaper.jpg")
+photo = Image.open("coronacomp.png")
 image1 = ImageTk.PhotoImage(photo)
 label_for_image = tkinter.Label(m, image=image1)
 label_for_image.pack()
-m.title("LA Hacks 2020")
+m.title("Shopper Alert")
 
 storeLabel = tkinter.Label(m, text="Enter your store here")
 storeLabel.pack()
@@ -265,10 +250,10 @@ label2.pack()
 e2 = tkinter.Entry(m)
 e2.pack()
 
-getButton = tkinter.Button(m, text="send message entered", width=35, command=sendMessage)
+getButton = tkinter.Button(m, text="send message entered", width=25, command=sendMessage)
 getButton.pack()
 
-button = tkinter.Button(m, text="close window", width=25, command=m.destroy)
+button = tkinter.Button(m, text="close window", width=25, command=m.destroy, bg="#ff0000", fg = "#ff0000")
 button.pack()
 
 m.mainloop()
