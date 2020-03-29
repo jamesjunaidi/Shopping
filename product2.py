@@ -3,11 +3,13 @@ from twilio.rest import Client
 import tkinter
 from flask import Flask, request, redirect
 from twilio.twiml.messaging_response import MessagingResponse
+from PIL import Image, ImageTk
 
 #import server.py
 
 listOfTPnumbers = []
 listOfHSnumbers = []
+listOfFaceMaskNumbers = []
 listOfNumbers = []
 
 numOfTimesRan = 0
@@ -15,7 +17,8 @@ app = Flask(__name__)
 #app.run(debug=True)
 
 TPText = open("TPnumbers.txt", "w+")
-
+HSText = open("HSnumbers.txt", "w+")
+FMText = open("FMnumbers.txt", "w+")
 
 @app.route("/sms", methods=['GET', 'POST'])
 def incoming_sms():
@@ -29,9 +32,7 @@ def incoming_sms():
 
     # Start our TwiML response
     resp = MessagingResponse()
-    global listOfTPnumbers
-    global listOfHSnumbers
-    global listOfNumbers
+
     if body == '1':
         
         if number not in listOfTPnumbers:
@@ -43,11 +44,19 @@ def incoming_sms():
     elif body == '2':
         if number not in listOfHSnumbers:
             listOfHSnumbers.append(number)
+            HSText.write("%s\n" % number)
             resp.message("We will text you when hand sanitizer is available")
         else:
             resp.message("You are already subscribed to hand sanitizer notifications")
+    elif body == '3':
+        if number not in listOfFaceMaskNumbers:
+            listOfFaceMaskNumbers.append(number)
+            FMText.write("%s\n" % number)
+            resp.message("We will text you when face masks are available")
+        else:
+            resp.message("You are already subscribed to face mask notifications")
     else:
-        resp.message("You are enrolled in Solomon James Rushil inventory service. To buy toilet paper, text 1. To buy hand saniter, text 2.")
+        resp.message("You are enrolled in Solomon James Rushil inventory service. To buy toilet paper, text 1. To buy hand saniter, text 2. To buy face masks, text 3")
         if number not in listOfNumbers:
             listOfNumbers.append(number)
     
@@ -60,9 +69,11 @@ def incoming_sms():
 if __name__ == "__main__":
     app.run(debug=True)
 #global string var
-itemString = ""
+itemString = "Toilet Paper"
 
 TPText.close()
+FMText.close()
+HSText.close()
 
 #grabs input from the first Entry (item) (This might be useless now)
 # def retrieve_input():
@@ -81,7 +92,7 @@ def retrieve_store():
 # Your Account SID from twilio.com/console
 account_sid = "ACf21b270aa57d4c7ce089f2ca9d472e90"
 # Your Auth Token from twilio.com/console
-auth_token = "XXXX"
+auth_token = "XXX"
 
 client = Client(account_sid, auth_token)
 
@@ -95,18 +106,32 @@ def sendMessage():
         print("got to send Toilet Paper")
         with open("TPnumbers.txt", "r+") as filehandle:
             for number in filehandle:
-                print("got to for each number")
-                message = client.messages.create(to= number, from_="+16178198883", body=string)
+                print("got to for each number in TP")
+                message = client.messages.create(to=number, from_="+16178198883", body=string)
     if itemString == "Hand Sanitizer":
-        for number in listOfHSnumbers:
-            message = client.messages.create(to= number, from_="+16178198883", body=string)
+        print("go to send Hand Sanitizer")
+        with open("HSnumbers.txt", "r+") as filehandle:
+            for number in filehandle:
+                print("got to for each number in HS")
+                message = client.messages.create(to=number, from_="+16178198883", body=string)
+    if itemString == "Face Mask":
+        print("go to send Face Mask")
+        with open("FMnumbers.txt", "r+") as filehandle:
+            for number in filehandle:
+                print("got to for each number in FM")
+                message = client.messages.create(to=number, from_="+16178198883", body=string)
 
 #start GUI
 #retrieve input from the text boxes:
 
 
 m=tkinter.Tk() #m is the name of the main window object
-m.geometry('725x500')
+m.geometry('1100x875')
+#image1 = tkinter.Image(file = "toiletpaper.jpg")
+photo = Image.open("toiletpaper.jpg")
+image1 = ImageTk.PhotoImage(photo)
+label_for_image = tkinter.Label(m, image=image1)
+label_for_image.pack()
 m.title("LA Hacks 2020")
 
 storeLabel = tkinter.Label(m, text="Enter your store here")
@@ -127,16 +152,29 @@ def toiletClick():
  
 toiletPaperButton = tkinter.Radiobutton(m, text = "Toilet Paper", value = 1, command = toiletClick)
 toiletPaperButton.pack()
+toiletPaperButton.select()
 
 def handSantizerClick():
     print("santizer ran")
     global itemString
     itemString = "Hand Sanitizer"
     print(itemString)
+
     
 handSanitizerButton = tkinter.Radiobutton(m, text = "Hand Sanitizer", value = 0, command = handSantizerClick)
 handSanitizerButton.pack()
+handSanitizerButton.deselect()
 
+
+def faceMaskClick():
+    print("face mask ran")
+    global itemString
+    itemString = "Face Mask"
+    print(itemString)
+
+faceMaskButton = tkinter.Radiobutton(m, text = "Face Mask", value=2, command=faceMaskClick)
+faceMaskButton.pack()
+faceMaskButton.deselect()
 
 label2 = tkinter.Label(m, text="Input quantity of item here")
 label2.pack()
