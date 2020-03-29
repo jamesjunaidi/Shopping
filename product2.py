@@ -33,6 +33,10 @@ def incoming_sms():
     # Start our TwiML response
     resp = MessagingResponse()
 
+    
+    if incoming_zip(number):
+        print("got inside if statement")
+        return "0"
     if body == '1':
         
         if number not in listOfTPnumbers:
@@ -40,7 +44,7 @@ def incoming_sms():
             TPText.write("%s" % number)
             resp.message("We will text you when toilet paper is available")
             resp.message("Please enter your ZIP Code so that local stores can update you")
-            incoming_zip()
+            incoming_zip(number)
         else:
             resp.message("You are already subscribed to toilet paper notifications")
     elif body == '2':
@@ -49,9 +53,7 @@ def incoming_sms():
             HSText.write("%s" % number)
             resp.message("We will text you when hand sanitizer is available")
             resp.message("Please enter your ZIP Code so that local stores can update you")
-            zipCode = request.values.get('Body', None)
-            TPText.write(" %s\n" % zipCode)
-            print(" %s\n" % zipCode)
+            incoming_zip(number)
         else:
             resp.message("You are already subscribed to hand sanitizer notifications")
     elif body == '3':
@@ -60,9 +62,7 @@ def incoming_sms():
             FMText.write("%s" % number)
             resp.message("We will text you when face masks are available")
             resp.message("Please enter your ZIP Code so that local stores can update you")
-            zipCode = request.values.get('Body', None)
-            TPText.write(" %s\n" % zipCode)
-            print(" %s\n" % zipCode)
+            incoming_zip(number)
         else:
             resp.message("You are already subscribed to face mask notifications")
     else:
@@ -70,9 +70,25 @@ def incoming_sms():
     
     return str(resp)
 
-def incoming_zip():
+def incoming_zip(number):
     zipCode = request.values.get('Body', None)
-    TPText.write(" %s\n," % zipCode)
+    print("zipCode in incoming-zip" + zipCode)
+    for user in listOfTPnumbers:
+        if user == number:
+            TPText.write("%s\n" % zipCode)
+            return True
+    
+    for user in listOfHSnumbers:
+        if user == number:
+            HSText.write("%s\n" % zipCode)
+            return True
+
+    for user in listOfFaceMaskNumbers:
+        if user == number:
+            FMText.write("%s\n " % zipCode)
+            return True
+    
+    return False
     
 
 if __name__ == "__main__":
@@ -101,7 +117,7 @@ def retrieve_store():
 # Your Account SID from twilio.com/console
 account_sid = "ACf21b270aa57d4c7ce089f2ca9d472e90"
 # Your Auth Token from twilio.com/console
-auth_token = "XXXX"
+auth_token = "aae20dab6abe3c575d587f3157060f4e"
 
 client = Client(account_sid, auth_token)
 
@@ -112,6 +128,7 @@ def sendMessage():
     #this line actually sends the message
     #message = client.messages.create(to="+19163657393", from_="+16178198883", body=string)
     if itemString == "Toilet Paper": 
+        print("got to send Toilet Paper")
         with open("TPnumbers.txt", "r+") as filehandle:
             for number in filehandle:
                 message = client.messages.create(to=number, from_="+16178198883", body=string)
