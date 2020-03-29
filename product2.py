@@ -19,9 +19,12 @@ app = Flask(__name__)
 TPText = open("TPnumbers.txt", "w+")
 HSText = open("HSnumbers.txt", "w+")
 FMText = open("FMnumbers.txt", "w+")
+
+previousBodyNumber = '0'
  
 @app.route("/sms", methods=['GET', 'POST'])
 def incoming_sms():
+    global previousBodyNumber
     global numOfTimesRan
     numOfTimesRan += 1
     print("incoming_sms() has ran this many times:" + str(numOfTimesRan))
@@ -34,7 +37,7 @@ def incoming_sms():
     resp = MessagingResponse()
 
     
-    if incoming_zip(number):
+    if incoming_zip(number, previousBodyNumber):
         print("got inside if statement")
         return "0"
     if body == '1':
@@ -44,7 +47,9 @@ def incoming_sms():
             TPText.write("%s" % number)
             resp.message("We will text you when toilet paper is available")
             resp.message("Please enter your ZIP Code so that local stores can update you")
-            incoming_zip(number)
+            previousBodyNumber = 1
+            incoming_zip(number, previousBodyNumber)
+            resp.message("Thank you for using Solomon James Rushil inventory service.")
         else:
             resp.message("You are already subscribed to toilet paper notifications")
     elif body == '2':
@@ -53,7 +58,10 @@ def incoming_sms():
             HSText.write("%s" % number)
             resp.message("We will text you when hand sanitizer is available")
             resp.message("Please enter your ZIP Code so that local stores can update you")
-            incoming_zip(number)
+            previousBodyNumber = 2
+            incoming_zip(number, previousBodyNumber)
+            resp.message("Thank you for using Solomon James Rushil inventory service.")
+            
         else:
             resp.message("You are already subscribed to hand sanitizer notifications")
     elif body == '3':
@@ -62,7 +70,10 @@ def incoming_sms():
             FMText.write("%s" % number)
             resp.message("We will text you when face masks are available")
             resp.message("Please enter your ZIP Code so that local stores can update you")
-            incoming_zip(number)
+            previousBodyNumber = 3
+            incoming_zip(number, previousBodyNumber)
+            resp.message("Thank you for using Solomon James Rushil inventory service.")
+            
         else:
             resp.message("You are already subscribed to face mask notifications")
     else:
@@ -70,24 +81,28 @@ def incoming_sms():
     
     return str(resp)
 
-def incoming_zip(number):
+def incoming_zip(number, body):
     zipCode = request.values.get('Body', None)
     print("zipCode in incoming-zip" + zipCode)
     for user in listOfTPnumbers:
-        if user == number:
+        if user == number and body == '1':
+            print("went inside body ==1")
             TPText.write("%s\n" % zipCode)
             return True
     
+
     for user in listOfHSnumbers:
-        if user == number:
+        if user == number and body == '2':
+            print("went inside body ==2")
             HSText.write("%s\n" % zipCode)
             return True
+            
 
     for user in listOfFaceMaskNumbers:
-        if user == number:
+        if user == number and body == '3':
+            print("went inside body ==3")
             FMText.write("%s\n " % zipCode)
             return True
-    
     return False
     
 
@@ -108,9 +123,12 @@ HSText.close()
 #grabs input from the second Entry (quantity)    
 def retrieve_quantity():
     return str(e2.get())
+# def retrieve_item():
+#     return str(eL.get())
 def retrieve_store():
-    return str(eL.get())
-
+    return str(sL.get())
+def retrieve_zip():
+    return int(zL.get())
     
 #start twilio
 
@@ -122,24 +140,60 @@ auth_token = "xxxx"
 client = Client(account_sid, auth_token)
 
 def sendMessage():
+    TPTell = open("TPnumbers.txt", "r+")
+    HSTell = open("HSnumbers.txt", "r+")
+    FMTell = open("FMnumbers.txt", "r+")
     print("got to sendMessage")
     #this var will hold the complteted string
-    string = "The item " + itemString + " is now in stock in " + retrieve_store() + "." + " There are " + retrieve_quantity() + " available."
+    string = "The item " + itemString + " is now in stock in " + retrieve_store() + " at the ZIP Code: " + str(retrieve_zip()) + "." + " There are " + retrieve_quantity() + " available."
     #this line actually sends the message
     #message = client.messages.create(to="+19163657393", from_="+16178198883", body=string)
+
     if itemString == "Toilet Paper": 
-        print("got to send Toilet Paper")
-        with open("TPnumbers.txt", "r+") as filehandle:
-            for number in filehandle:
-                message = client.messages.create(to=number, from_="+16178198883", body=string)
+        with TPTell as filehandle:
+            line = filehandle.readlines()
+            lineIndex = 0
+            while lineIndex < len(line):
+                phoneNumberOnly = line[lineIndex]
+                print("new phone num")
+                print(phoneNumberOnly)
+                zipCodeOnly = line[lineIndex + 1]
+                print(zipCodeOnly)
+                lineIndex += 2
+                print("For testing: phone number = " + phoneNumberOnly[0:12] + " zip code only =" + zipCodeOnly)
+                print("retrieve_zip output=" + str(retrieve_zip()))
+                print("zipCodeOnly=" + zipCodeOnly)
+                result = int(zipCodeOnly) - int(retrieve_zip())
+                print("result =" + str(result))
+                #print(int(zipCodeOnly) == retrieve_zip())
+                if (result == 0):
+                    print("about to send message to " + phoneNumberOnly[0:12])
+                    message = client.messages.create(to=phoneNumberOnly[0:12], from_="+16178198883", body=string)
+        TPTell.close()
     if itemString == "Hand Sanitizer":
-        with open("HSnumbers.txt", "r+") as filehandle:
-            for number in filehandle:
-                message = client.messages.create(to=number, from_="+16178198883", body=string)
+        with HSTell as filehandle:
+            line = filehandle.readlines()
+            lineIndex = 0
+            while lineIndex < len(line):
+                phoneNumberOnly = line[lineIndex]
+                zipCodeOnly = line[lineIndex + 1]
+                lineIndex += 2
+                result = int(zipCodeOnly) - int(retrieve_zip())
+                if (result == 0):
+                    message = client.messages.create(to=phoneNumberOnly[0:12], from_="+16178198883", body=string)
+        HSTell.close()
     if itemString == "Face Mask":
-        with open("FMnumbers.txt", "r+") as filehandle:
-            for number in filehandle:
-                message = client.messages.create(to=number, from_="+16178198883", body=string)
+        with FMTell as filehandle:
+            line = filehandle.readlines()
+            lineIndex = 0
+            while lineIndex < len(line):
+                phoneNumberOnly = line[lineIndex]
+                zipCodeOnly = line[lineIndex + 1]
+                lineIndex += 2
+                result = int(zipCodeOnly) - int(retrieve_zip())
+                if (result == 0):
+                    message = client.messages.create(to=phoneNumberOnly[0:12], from_="+16178198883", body=string)
+        FMTell.close()
 
 #start GUI
 #retrieve input from the text boxes:
@@ -156,12 +210,21 @@ m.title("LA Hacks 2020")
 
 storeLabel = tkinter.Label(m, text="Enter your store here")
 storeLabel.pack()
-#eL will contain the item that is available
-eL = tkinter.Entry(m)
-eL.pack()
+
+sL = tkinter.Entry(m)
+sL.pack()
+
+zipCodeLabel = tkinter.Label(m, text="Enter your ZIP code here")
+zipCodeLabel.pack()
+
+zL = tkinter.Entry(m)
+zL.pack()
+
 
 label1 = tkinter.Label(m, text="Input item here")
 label1.pack()
+
+
 
 #itemList will contain the item that is available
 def toiletClick():
