@@ -117,7 +117,7 @@ def retrieve_store():
 # Your Account SID from twilio.com/console
 account_sid = "ACf21b270aa57d4c7ce089f2ca9d472e90"
 # Your Auth Token from twilio.com/console
-auth_token = "aae20dab6abe3c575d587f3157060f4e"
+auth_token = "xxxx"
 
 client = Client(account_sid, auth_token)
 
